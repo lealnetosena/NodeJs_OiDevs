@@ -4,6 +4,11 @@ const userRoutes = Router();
 
 let users: any[] = [];
 
+const emailRegex = 
+
+/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+
+
 userRoutes.get('/', (request, response) => {
 	return response.send(users)
 
@@ -14,7 +19,10 @@ userRoutes.get('/:id', (request, response) => {
 	const user = users.find((x)=> x.id === Number(id))
 
 	if (!user) {
-		return response.send('User not found!')
+
+		return response.status(404).send({
+            message: 'User not found!'
+        });
 	}
 
 	return response.send(user)
@@ -22,7 +30,28 @@ userRoutes.get('/:id', (request, response) => {
 
 userRoutes.post('/', (request, response)=> {
 	const user = request.body
-	request.query
+
+    if (!user.id) {
+        return response.status(400).send({
+            field: 'id',
+            message: 'Id is invalid'
+        })
+    }
+
+    if (!user.name) {
+        return response.status(400).send({
+            field: 'name',
+            message: 'Name is invalid'
+        })
+    } 
+
+    if (!user.email || !emailRegex.test(user.email)) {
+        return response.status(400).send({
+            field: 'email',
+            message: 'Email is invalid'
+        })
+    } 
+
 	users.push(user)
 	return response.send(user)
 });
