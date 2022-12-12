@@ -1,7 +1,6 @@
 import express from 'express';
 
-import userRoutes  from './routes/user.routes';
-import citiesRoutes from './routes/cities.routes';
+import routes from './routes';
 
 const port = 3333;
 const server = express()
@@ -10,8 +9,7 @@ const server = express()
 server.use(express.json());
 
 // Adicionar as rotas 
-server.use('/users', userRoutes)
-// server.use('/cities', citiesRoutes)
+server.use(routes)
 
 server.listen(port, () => {
     console.log('Server is running!')

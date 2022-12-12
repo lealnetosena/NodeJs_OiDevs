@@ -1,8 +1,9 @@
 import { Router } from 'express'
+import { User } from '../domain/entities/user'
 // /users
 const userRoutes = Router();
 
-let users: any[] = [];
+let users: User[] = [];
 
 const emailRegex = 
 
@@ -20,7 +21,7 @@ userRoutes.get('/:id', (request, response) => {
 
 	if (!user) {
 
-		return response.status(404).send({
+		return response.status(404).json({
             message: 'User not found!'
         });
 	}
@@ -32,21 +33,21 @@ userRoutes.post('/', (request, response)=> {
 	const user = request.body
 
     if (!user.id) {
-        return response.status(400).send({
+        return response.status(400).json({
             field: 'id',
             message: 'Id is invalid'
         })
     }
 
     if (!user.name) {
-        return response.status(400).send({
+        return response.status(400).json({
             field: 'name',
             message: 'Name is invalid'
         })
     } 
 
     if (!user.email || !emailRegex.test(user.email)) {
-        return response.status(400).send({
+        return response.status(400).json({
             field: 'email',
             message: 'Email is invalid'
         })
@@ -73,8 +74,21 @@ userRoutes.put('/:id', (request, response) => {
 
 userRoutes.delete('/:id',(request, response) => {
 	const {id} = request.params
+
+    // Procurar se o usuario existe
+    const userIndex = users.findIndex((x) => x.id === Number(id))
+    const userExists = userIndex > -1;
+
+    if (!userExists){
+        return response.status(404).json({
+            message: 'user not found'
+        })
+    }
+
 	users = users.filter((x) => x.id !== Number(id))
-	return response.send('Deleted!')
+	return response.json({
+        message: 'User deleted!'
+    })
 
 })
 
