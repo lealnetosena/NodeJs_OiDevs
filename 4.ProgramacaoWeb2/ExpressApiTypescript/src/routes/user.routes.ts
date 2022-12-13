@@ -1,5 +1,7 @@
-import { Router } from 'express'
+import { Request, Response, Router } from 'express'
 import { User } from '../domain/entities/user'
+import { UserDto } from '../domain/dtos/user';
+
 // /users
 const userRoutes = Router();
 
@@ -10,14 +12,19 @@ const emailRegex =
 /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 
 
-userRoutes.get('/', (request, response) => {
+userRoutes.get('/', (request: Request, response:Response) => {
 	return response.send(users)
 
 });
 
-userRoutes.get('/:id', (request, response) => {
+interface GetParams {
+    id: number
+}
+
+userRoutes.get('/:id', (request: Request<GetParams>, response:Response) => {
 	const {id} = request.params
-	const user = users.find((x)=> x.id === Number(id))
+	const user = users.find((x)=> x.id == id)
+
 
 	if (!user) {
 
@@ -29,8 +36,10 @@ userRoutes.get('/:id', (request, response) => {
 	return response.send(user)
 })
 
-userRoutes.post('/', (request, response)=> {
+userRoutes.post('/', (request: Request<{},{}, User>, response: Response)=> {
 	const user = request.body
+
+    // tipagem do body utilizando o tipo request do express
 
     if (!user.id) {
         return response.status(400).json({
@@ -57,13 +66,24 @@ userRoutes.post('/', (request, response)=> {
 	return response.send(user)
 });
 
-userRoutes.put('/:id', (request, response) => {
+
+interface PutParams {
+    id: number
+}
+
+userRoutes.put('/:id', (
+    request: Request<PutParams,{}, Omit<UserDto,'id'>>, 
+    response: Response
+    ) => {
   const { id } = request.params;
-  const userIndex = users.findIndex((x) => x.id === Number(id));
+  const userIndex = users.findIndex((x) => x.id == id);
+
 	if (userIndex === -1 ) {
 		// Retornar que não encontrou
 		return response.send('Not Found!')
 	}
+    
+
 	users[userIndex].name = request.body.name
 	users[userIndex].email = request.body.email
 
@@ -72,11 +92,16 @@ userRoutes.put('/:id', (request, response) => {
 
 })
 
-userRoutes.delete('/:id',(request, response) => {
+interface DeleteParams {
+    id: number
+}
+
+
+userRoutes.delete('/:id',(request: Request<DeleteParams>, response:Response) => {
 	const {id} = request.params
 
     // Procurar se o usuario existe
-    const userIndex = users.findIndex((x) => x.id === Number(id))
+    const userIndex = users.findIndex((x) => x.id == id)
     const userExists = userIndex > -1;
 
     if (!userExists){
@@ -85,7 +110,7 @@ userRoutes.delete('/:id',(request, response) => {
         })
     }
 
-	users = users.filter((x) => x.id !== Number(id))
+	users = users.filter((x) => x.id != id)
 	return response.json({
         message: 'User deleted!'
     })
