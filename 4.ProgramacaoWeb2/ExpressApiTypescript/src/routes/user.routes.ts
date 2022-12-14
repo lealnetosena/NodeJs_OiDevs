@@ -1,7 +1,12 @@
 import { Request, Response, Router } from 'express'
+import { v4 } from 'uuid'
+import { PrismaClient } from '@prisma/client'
+
 import { User } from '../domain/entities/user'
 import { UserDto } from '../domain/dtos/user';
 
+
+const prisma = new PrismaClient()
 // /users
 const userRoutes = Router();
 
@@ -12,8 +17,11 @@ const emailRegex =
 /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 
 
-userRoutes.get('/', (request: Request, response:Response) => {
-	return response.send(users)
+userRoutes.get(
+    '/', 
+    async (request: Request, response:Response) => {
+        const users = await prisma.user.findMany();
+        return response.json(users)
 
 });
 
@@ -21,49 +29,53 @@ interface GetParams {
     id: number
 }
 
-userRoutes.get('/:id', (request: Request<GetParams>, response:Response) => {
-	const {id} = request.params
-	const user = users.find((x)=> x.id == id)
+userRoutes.get(
+    '/:id', 
+    async (request: Request<GetParams>, response:Response) => {
+        const {id} = request.params
+        const user = await prisma.user.findMany()
 
+        return response.json(user)
+        if (!user) {
 
-	if (!user) {
-
-		return response.status(404).json({
-            message: 'User not found!'
-        });
-	}
-
-	return response.send(user)
+            return response.status(404).json({
+                message: 'User not found!'
+            });
+        }
+        
+        return response.json(user)
 })
 
-userRoutes.post('/', (request: Request<{},{}, User>, response: Response)=> {
-	const user = request.body
+userRoutes.post(
+    '/', 
+    async (request: Request<{},{}, UserDto>, response: Response)=> {
+        const user = request.body
 
-    // tipagem do body utilizando o tipo request do express
+        // tipagem do body utilizando o tipo request do express
 
-    if (!user.id) {
-        return response.status(400).json({
-            field: 'id',
-            message: 'Id is invalid'
+
+        if (!user.name) {
+            return response.status(400).json({
+                field: 'name',
+                message: 'Name is invalid'
+            })
+        } 
+
+        if (!user.email || !emailRegex.test(user.email)) {
+            return response.status(400).json({
+                field: 'email',
+                message: 'Email is invalid'
+            })
+        } 
+
+        const createdUser = await prisma.user.create({
+            data: {
+                id: v4(),
+                name: user.name,
+                email: user.email
+            }
         })
-    }
-
-    if (!user.name) {
-        return response.status(400).json({
-            field: 'name',
-            message: 'Name is invalid'
-        })
-    } 
-
-    if (!user.email || !emailRegex.test(user.email)) {
-        return response.status(400).json({
-            field: 'email',
-            message: 'Email is invalid'
-        })
-    } 
-
-	users.push(user)
-	return response.send(user)
+        return response.json(createdUser)
 });
 
 
