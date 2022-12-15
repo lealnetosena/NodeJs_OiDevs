@@ -10,7 +10,6 @@ const prisma = new PrismaClient()
 // /users
 const userRoutes = Router();
 
-let users: User[] = [];
 
 const emailRegex = 
 
@@ -20,22 +19,34 @@ const emailRegex =
 userRoutes.get(
     '/', 
     async (request: Request, response:Response) => {
-        const users = await prisma.user.findMany();
+        const users = await prisma.user.findMany({
+          include: {
+            city: true
+          }
+        });
         return response.json(users)
 
 });
 
 interface GetParams {
-    id: number
+    id: string
 }
 
 userRoutes.get(
     '/:id', 
     async (request: Request<GetParams>, response:Response) => {
         const {id} = request.params
-        const user = await prisma.user.findMany()
+        const user = await prisma.user.findFirst({
+            where:{
+                id: {
+                    equals: id
+                }
+            },
+              include: {
+                city: true
+              }  
+        })
 
-        return response.json(user)
         if (!user) {
 
             return response.status(404).json({
@@ -52,8 +63,6 @@ userRoutes.post(
         const user = request.body
 
         // tipagem do body utilizando o tipo request do express
-
-
         if (!user.name) {
             return response.status(400).json({
                 field: 'name',
@@ -72,7 +81,8 @@ userRoutes.post(
             data: {
                 id: v4(),
                 name: user.name,
-                email: user.email
+                email: user.email,
+                cityId: user.cityId 
             }
         })
         return response.json(createdUser)
@@ -80,49 +90,77 @@ userRoutes.post(
 
 
 interface PutParams {
-    id: number
+    id: string
 }
 
-userRoutes.put('/:id', (
+userRoutes.put('/:id', async (
     request: Request<PutParams,{}, Omit<UserDto,'id'>>, 
     response: Response
     ) => {
   const { id } = request.params;
-  const userIndex = users.findIndex((x) => x.id == id);
+  const userData = request.body
 
-	if (userIndex === -1 ) {
+  const user = prisma.user.findFirst({
+    where: {
+        id:{
+            equals: id
+        }
+      }
+    }
+  )
+
+	if (!user) {
 		// Retornar que não encontrou
-		return response.send('Not Found!')
+		return response.status(404).json({
+      message: 'User not found!'
+    })
 	}
     
+  const updatedUser = await prisma.user.update({
+    data: {
+      name: userData.name,
+      email: userData.email
+    },
+    where:{
+      id: id
+    }
+  })
 
-	users[userIndex].name = request.body.name
-	users[userIndex].email = request.body.email
-
-	return response.send(users[userIndex])
+	return response.send(updatedUser)
 	
 
 })
 
 interface DeleteParams {
-    id: number
+    id: string
 }
 
 
-userRoutes.delete('/:id',(request: Request<DeleteParams>, response:Response) => {
+userRoutes.delete('/:id', async (request: Request<DeleteParams>, response:Response) => {
 	const {id} = request.params
 
     // Procurar se o usuario existe
-    const userIndex = users.findIndex((x) => x.id == id)
-    const userExists = userIndex > -1;
+    const user = prisma.user.findFirst({
+      where: {
+          id:{
+              equals: id
+          }
+        }
+      }
+    )
 
-    if (!userExists){
+    if (!user){
         return response.status(404).json({
             message: 'user not found'
         })
     }
 
-	users = users.filter((x) => x.id != id)
+    await prisma.user.delete({
+      where: {
+        id: id
+      }
+    })
+  
 	return response.json({
         message: 'User deleted!'
     })
