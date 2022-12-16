@@ -24,4 +24,3 @@ model User {
   city    City       @relation(fields: [cityId], references: [id])
   cityId  Int
 }
-
