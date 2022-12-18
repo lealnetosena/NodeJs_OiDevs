@@ -35,7 +35,7 @@ interface GetParams {
 userRoutes.get(
     '/:id', 
     async (request: Request<GetParams>, response:Response) => {
-        const {id} = request.params
+        const { id } = request.params
         const user = await prisma.user.findFirst({
             where:{
                 id: {

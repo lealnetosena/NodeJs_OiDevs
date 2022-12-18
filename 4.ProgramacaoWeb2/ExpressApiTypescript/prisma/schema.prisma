@@ -12,7 +12,7 @@ datasource db {
 
 model City {
   id    Int        @id @default(autoincrement())
-  name  String
+  name  String? 
   uf    String
   users User[]
 }
