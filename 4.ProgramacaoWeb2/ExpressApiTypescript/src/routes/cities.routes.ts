@@ -11,20 +11,23 @@ const citiesRoutes = Router();
 //const cities: any[] = []
 
 interface GetParams {
-    nameCity: string;
     id: string;
 
 }
 
+interface GetQuery{
+    nameCity: string
+}
+
 // /GET
 citiesRoutes.get('/',
-    async (req: Request<GetParams>, res: Response) => {
+    async (req: Request<GetParams, {}, {}, GetQuery>, res: Response) => {
         
     const { nameCity } = req.query
     
-    console.log(nameCity, typeof(nameCity))
+    //console.log(nameCity, typeof(nameCity))
 
-    if(typeof(nameCity) != 'object' || typeof(nameCity) == 'string' ||  typeof(nameCity) == 'undefined' ){
+    if(typeof(nameCity) == 'string' ||  typeof(nameCity) == 'undefined' ){
 
       const cities = await prisma.city.findMany({
           where:{
@@ -39,9 +42,6 @@ citiesRoutes.get('/',
         message: 'Query paraments incorrect'
       })
     }
-
-    
-
 })
 
 
