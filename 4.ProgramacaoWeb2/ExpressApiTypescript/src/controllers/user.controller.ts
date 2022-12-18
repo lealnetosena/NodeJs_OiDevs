@@ -1,9 +1,13 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { v4 } from 'uuid'
 
 import { UserDto } from '../domain/dtos/user';
-
+import { ListUserUseCase } from "../useCases/user/listUser"; 
+import { GetUserUseCase } from "../useCases/user/getUser"; 
+import { UpdateUserUseCase } from "../useCases/user/updateUser"; 
+import { DeleteUserUseCase } from "../useCases/user/deleteUser"; 
+import { CreateUserUseCase } from "../useCases/user/createUser"; 
+import { validationResult } from "express-validator/src/validation-result";
 const prisma = new PrismaClient()
 
 const emailRegex = 
@@ -12,13 +16,9 @@ const emailRegex =
 
 
 export async function listUser(req: Request, res:Response){
-
-    const users = await prisma.user.findMany({
-        include: {
-          city: true
-        }
-      });
-      return res.json(users)
+  const useCase = new ListUserUseCase()
+  const users = await useCase.handle()
+  return res.json(users)
 
 }
 
@@ -27,16 +27,9 @@ interface GetParams {
 }
 export async function getUser (req: Request<GetParams>, res:Response)  {
 	const { id } = req.params
-	const user = await prisma.user.findFirst({
-			where:{
-					id: {
-							equals: id
-					}
-			},
-				include: {
-					city: true
-				}  
-	})
+
+  const useCase = new GetUserUseCase()
+  const user = await useCase.handle(id)
 
 	if (!user) {
 
@@ -48,32 +41,17 @@ export async function getUser (req: Request<GetParams>, res:Response)  {
 	return res.json(user)
 }
 
-export async function createUser (req: Request<{},{}, UserDto>, res: Response){
+export async function createUser (req: Request<{},{}, Omit<UserDto,'id'>>, res: Response){
 	const user = req.body
 
-	// tipagem do body utilizando o tipo request do express
-	if (!user.name) {
-			return res.status(400).json({
-					field: 'name',
-					message: 'Name is invalid'
-			})
-	} 
+  // const erros = validationResult(req);
+  // if (!erros.isEmpty()){
+  //   return res.status(400).json({ erros: erros.array()})
+  // }
 
-	if (!user.email || !emailRegex.test(user.email)) {
-			return res.status(400).json({
-					field: 'email',
-					message: 'Email is invalid'
-			})
-	} 
-
-	const createdUser = await prisma.user.create({
-			data: {
-					id: v4(),
-					name: user.name,
-					email: user.email,
-					cityId: user.cityId 
-			}
-	})
+  const useCase = new CreateUserUseCase()
+  const createdUser = useCase.handle(user)
+  
 	return res.json(createdUser)
 }
 
@@ -100,17 +78,13 @@ export async function updateUser (req: Request<PutParams,{}, Omit<UserDto,'id'>>
     })
 	}
     
-  const updatedUser = await prisma.user.update({
-        data: {
-        name: userData.name,
-        email: userData.email
-        },
-        where:{
-        id: id
-        }
-    })
+  const useCase = new UpdateUserUseCase()
+  const updatedUser = useCase.handle({
+    id,
+    ...userData
+  })
 
-    return res.send(updatedUser)
+  return res.send(updatedUser)
 }
 
 interface DeleteParams {
@@ -134,12 +108,9 @@ export async function deleteUser (req: Request<DeleteParams>, res:Response) {
             message: 'user not found'
         })
     }
+    const useCase = new DeleteUserUseCase
+    await useCase.handle(id)
 
-    await prisma.user.delete({
-      where: {
-        id: id
-      }
-    })
   
 	return res.json({
         message: 'User deleted!'
